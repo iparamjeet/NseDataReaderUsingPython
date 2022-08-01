@@ -1,6 +1,8 @@
 import requests
 import pandas as pd
 import json
+import math
+
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -35,6 +37,7 @@ class NSE:
         return df
 
     def equity_market_data(self, category, symbol_list=False):
+        pasaCat = category
         category = category.upper().replace(' ', '%20').replace('&', '%26')
         data = self.session.get(
             f"https://www.nseindia.com/api/equity-stockIndices?index={category}", headers=self.headers).json()["data"]
@@ -54,9 +57,16 @@ class NSE:
         for data in res:
             total_change += data['change']
             total_percent_change += data['pChange']
+            if data['open'] == data['dayLow']:
+                print('Take Long position in : ' + data['symbol'])
 
-        print(total_change-res[0]['change'])
-        print(total_percent_change-res[0]['pchange'])
+            if data['open'] == data['dayHigh']:
+                print('Take Short position in : ' + data['symbol'])
+
+        print('Total change in ' + str(pasaCat) + ' :' +
+              str(math.floor(total_change-res[0]['change'])))
+        print('Total change in ' + str(pasaCat) + ' percentage wise : ' +
+              str(math.floor(total_percent_change-res[0]['pChange'])))
 
         # to format data in tabular form and print in consle as table
         df = pd.DataFrame(data)
