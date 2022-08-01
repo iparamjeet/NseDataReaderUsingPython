@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+import json
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -38,10 +39,26 @@ class NSE:
         data = self.session.get(
             f"https://www.nseindia.com/api/equity-stockIndices?index={category}", headers=self.headers).json()["data"]
 
-        print(data[0])
-        # pd.read_json("data.json").to_excel("output.xlsx")
+        # copy generated live-data to xl
         df = pd.DataFrame(data).to_excel("Data_liveEquityMarket.xlsx")
 
+        # copy generated live-data to json file
+        with open('Data_liveEquity.json', 'w') as f:
+            json.dump(data, f)
+
+        # calculate total change in NIFTY50
+        total_change = 0
+        total_percent_change = 0
+        f = open('Data_liveEquity.json')
+        res = json.load(f)
+        for data in res:
+            total_change += data['change']
+            total_percent_change += data['pChange']
+
+        print(total_change-res[0]['change'])
+        print(total_percent_change-res[0]['pchange'])
+
+        # to format data in tabular form and print in consle as table
         df = pd.DataFrame(data)
         df = df.drop(["meta"], axis=1)
         df = df.set_index("symbol", drop=True)
@@ -76,9 +93,9 @@ class NSE:
         return df
 
     def option_data(self, symbol, indices=False):
-        symbol = symbol.replace('', '%20').replace('&', '%26')
+        symbol = symbol.replace(' ', '%20').replace('&', '%26')
         if not indices:
-            url = 'https://www.nseindia.com/api/option-chain-equities?symbole=' + symbol
+            url = 'https://www.nseindia.com/api/option-chain-equities?symbol=' + symbol
         else:
             url = 'https://www.nseindia.com/api/option-chain-indices?symbol=' + symbol
         data = self.session.get(url, headers=self.headers).json()[
@@ -90,6 +107,7 @@ class NSE:
                     info = v
                     info["instrumentType"] = k
                     my_df.append(info)
+        df = pd.DataFrame(my_df).to_excel("Data_optionChain.xlsx")
         df = pd.DataFrame(my_df)
         df = df.set_index("identifier", drop=True)
         return df
